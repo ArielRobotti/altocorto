@@ -1,0 +1,26 @@
+{
+  "canisters": {
+    "altocorto_backend": {
+      "main": "src/altocorto_backend/main.mo",
+      "type": "motoko"
+    },
+    "altocorto_frontend": {
+      "dependencies": [
+        "altocorto_backend"
+      ],
+      "source": [
+        "src/altocorto_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "altocorto_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
