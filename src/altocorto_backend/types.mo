@@ -31,9 +31,10 @@ module {
     };
 
     public type UploadResponse = {
-        tempId: Nat;
+        #Ok: {tempId: Nat;
         chunksQty: Nat;
-        chunkSize: Nat;
+        chunkSize: Nat;};
+        #Err;
     };
 
     public type Chunk = Blob;

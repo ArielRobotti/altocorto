@@ -40,22 +40,33 @@ actor {
     };
 
      public shared ({caller}) func uploadRequest(fileName : Text, fileSize : Nat, visible: Bool) : async UploadResponse {
-        let chunkSize = 1_000_000;   // Tamaño en Bytes de los "Chuncks" 1_048_576 //1MB
-        let chunksQty = fileSize / chunkSize + (if (fileSize % chunkSize > 0) {1} else {0});
-        let data = Prim.Array_init<Blob>(chunksQty, "");
-        let id = tempFileId;
-        tempFileId += 1;
-        let newAsset: TempVideo = {
-            title = fileName;
-            owner = caller;
-            videoSize = fileSize;
-            visible;
-            chunksQty;
-            chunkSize;
-            data;
-        };
-        ignore Map.put<Nat, TempVideo>(tempUploadVideo, nhash, id, newAsset);
-        return {tempId = id; chunksQty = chunksQty; chunkSize = chunkSize;}
+        let user = Map.get<Principal, User>(users, phash, caller);
+        switch user{
+            case null {return #Err};
+            case (?user) {
+                let chunkSize = 1_000_000;   // Tamaño en Bytes de los "Chuncks" 1_048_576 //1MB
+                let chunksQty = fileSize / chunkSize + (if (fileSize % chunkSize > 0) {1} else {0});
+                let data = Prim.Array_init<Blob>(chunksQty, "");
+                let id = tempFileId;
+                tempFileId += 1;
+                let newAsset: TempVideo = {
+                    title = fileName;
+                    owner = caller;
+                    videoSize = fileSize;
+                    visible;
+                    chunksQty;
+                    chunkSize;
+                    data;
+                };
+                ignore Map.put<Nat, TempVideo>(tempUploadVideo, nhash, id, newAsset);
+                let videos = Prim.Array_tabulate<VideoId>(user.videos.size() + 1, func (x): VideoId {
+                    if (x == 0) { id } else { user.videos[x-1]}
+                });
+                ignore Map.put<Principal, User>(users, phash, caller, {user with videos});
+                return #Ok({tempId = id; chunksQty = chunksQty; chunkSize = chunkSize;})
+            }
+        }
+        
     };
 
     public shared ({ caller }) func addChunk(tempFileId: Nat, chunk: Chunk, index: Nat ):async {#Ok; #Err: Text}{
@@ -76,7 +87,7 @@ actor {
         Prim.Array_tabulate<T>(arr.size(), func x = arr[x])
     };
 
-    public shared ({ caller }) func commitLoad(fileId: Nat): async {#Ok; #Err: Text}{
+    public shared ({ caller }) func commiUpload(fileId: Nat): async {#Ok; #Err: Text}{
         let video = Map.remove(tempUploadVideo, nhash, fileId);
         switch video {
             case null { 
