@@ -1,12 +1,16 @@
 {
   "canisters": {
-    "altocorto_backend": {
+    "internet_identity": {
+      "type": "pull",
+      "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+    },
+    "backend": {
       "main": "src/altocorto_backend/main.mo",
       "type": "motoko"
     },
-    "altocorto_frontend": {
+    "frontend": {
       "dependencies": [
-        "altocorto_backend"
+        "backend"
       ],
       "source": [
         "src/altocorto_frontend/dist"
@@ -18,7 +22,7 @@
   "defaults": {
     "build": {
       "args": "",
-      "packtool": ""
+      "packtool": "mops sources"
     }
   },
   "output_env_file": ".env",
