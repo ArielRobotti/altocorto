@@ -111,5 +111,24 @@ actor {
     };
 
 
+    public query func startPlay(_videoId : Nat) : async {#Ok: Video; #Err: Text} {
+        let video = Map.get(videos, nhash, _videoId);
+        switch video {
+            case null { #Err("File Not Found") };
+            case (?video) { #Ok({ video with data = [] }) }; //Devolvemos toda la metadata menos los fragmento del video
+        };
+    };
+
+    public query func getChunck(_fileId : Nat, chunckIndex : Nat) : async {#Ok: Blob; #Err: Text} {
+        let video = Map.get(videos, nhash, _fileId);
+        switch video {
+            case null { #Err("File Not Found") };
+            case (?video) {
+                #Ok(video.data[chunckIndex]);
+            };
+        };
+    };
+
+
     
 };
