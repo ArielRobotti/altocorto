@@ -12,12 +12,28 @@ module {
 
     public type Video = {
         title: Text;
-        duration: Nat;
         owner: Principal;
-        visibility: Bool;
+        videoSize: Nat;
+        visible: Bool;
         chunksQty: Nat;
-        size: Nat;
+        chunkSize: Nat;
         data: [Chunk]
+    };
+
+    public type TempVideo = {
+        title: Text;
+        owner: Principal;
+        videoSize: Nat;
+        visible: Bool;
+        chunksQty: Nat;
+        chunkSize: Nat;
+        data: [var Chunk]
+    };
+
+    public type UploadResponse = {
+        tempId: Nat;
+        chunksQty: Nat;
+        chunkSize: Nat;
     };
 
     public type Chunk = Blob;
