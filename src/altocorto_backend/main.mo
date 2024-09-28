@@ -39,7 +39,7 @@ actor {
         Map.get<Principal, User>(users, phash, caller); 
     };
 
-     public shared ({caller}) func uploadRequest(fileName : Text, fileSize : Nat, visible: Bool) : async UploadResponse {
+    public shared ({caller}) func uploadRequest(fileName : Text, fileSize : Nat, visible: Bool) : async UploadResponse {
         let user = Map.get<Principal, User>(users, phash, caller);
         switch user{
             case null {return #Err};
@@ -69,6 +69,25 @@ actor {
         
     };
 
+    public shared ({ caller }) func uploadRequestNonUserFoTest(fileName : Text, fileSize : Nat): async UploadResponse {
+        let chunkSize = 1_000_000;   // Tamaño en Bytes de los "Chuncks" 1_048_576 //1MB
+        let chunksQty = fileSize / chunkSize + (if (fileSize % chunkSize > 0) {1} else {0});
+        let data = Prim.Array_init<Blob>(chunksQty, "");
+        let id = tempFileId;
+        tempFileId += 1;
+        let newAsset: TempVideo = {
+            title = fileName;
+            owner = caller;
+            videoSize = fileSize;
+            visible = true;
+            chunksQty;
+            chunkSize;
+            data;
+        };
+        ignore Map.put<Nat, TempVideo>(tempUploadVideo, nhash, id, newAsset);
+        return #Ok({tempId = id; chunksQty = chunksQty; chunkSize = chunkSize;})
+    };
+
     public shared ({ caller }) func addChunk(tempFileId: Nat, chunk: Chunk, index: Nat ):async {#Ok; #Err: Text}{
         let tempFile = Map.get(tempUploadVideo, nhash, tempFileId);
         switch tempFile {
@@ -87,7 +106,7 @@ actor {
         Prim.Array_tabulate<T>(arr.size(), func x = arr[x])
     };
 
-    public shared ({ caller }) func commiUpload(fileId: Nat): async {#Ok; #Err: Text}{
+    public shared ({ caller }) func commiUpload(fileId: Nat): async {#Ok: Nat; #Err: Text}{
         let video = Map.remove(tempUploadVideo, nhash, fileId);
         switch video {
             case null { 
@@ -105,7 +124,7 @@ actor {
                 let data = frezze<Chunk>(video.data);
                 lastVideoId += 1;
                 ignore Map.put<Nat, Video>(videos, nhash, lastVideoId, {video with data});
-                #Ok
+                #Ok(fileId)
             }
         };    
     };
@@ -119,12 +138,12 @@ actor {
         };
     };
 
-    public query func getChunck(_fileId : Nat, chunckIndex : Nat) : async {#Ok: Blob; #Err: Text} {
+    public query func getChunk(_fileId : Nat, chunkIndex : Nat) : async {#Ok: Blob; #Err: Text} {
         let video = Map.get(videos, nhash, _fileId);
         switch video {
             case null { #Err("File Not Found") };
             case (?video) {
-                #Ok(video.data[chunckIndex]);
+                #Ok(video.data[chunkIndex]);
             };
         };
     };

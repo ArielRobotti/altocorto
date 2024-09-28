@@ -32,8 +32,8 @@ module {
 
     public type UploadResponse = {
         #Ok: {tempId: Nat;
-        chunksQty: Nat;
-        chunkSize: Nat;};
+            chunksQty: Nat;
+            chunkSize: Nat;};
         #Err;
     };
 

@@ -1,5 +1,17 @@
-import { useState } from 'react';
+
 import { altocorto_backend } from 'declarations/altocorto_backend';
+import React, { useState } from 'react';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import Container from '@mui/material/Container';
+import CssBaseline from '@mui/material/CssBaseline';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import SearchIcon from '@mui/icons-material/Search';
 
 const theme = createTheme({
   palette: {
@@ -27,10 +39,12 @@ function App() {
     setError('');
     const file = event.target.elements.file.files[0];
     const fileName = file.name;
+    
     const totalLength = file.size;
-
+    console.log(totalLength);
     try {
-      let { id, chunksQty, chunkSize } = await altocorto_backend.uploadRequest(fileName, totalLength);
+      let response = await altocorto_backend.uploadRequestNonUserFoTest(fileName, totalLength);
+      let {tempId, chunksQty, chunkSize } = response.Ok;
       const promises = [];
 
       for (let i = 0; i < Number(chunksQty); i++) {
@@ -40,10 +54,10 @@ function App() {
         const arrayBuffer = await chunk.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
         console.log("Subiendo ", uint8Array.length, " Bytes from Chunck Nro ", i );
-        promises.push(altocorto_backend.addChunk(id, uint8Array, i));
+        promises.push(altocorto_backend.addChunk(tempId, uint8Array, i));
       }
       await Promise.all(promises);
-      const result = await altocorto_backend.commiUpload(id);
+      const result = await altocorto_backend.commiUpload(tempId);
       console.log(result);
     } catch (err) {
       setError('Error uploading file. Please try again.');
@@ -58,19 +72,19 @@ function App() {
     setLoading(true);
     setError('');
     const { id } = event.target.elements;
-    const fileId = id.value;
+    const videoId = id.value;
 
     try {
-      const fileResponse = await altocorto_backend.startDownload(BigInt(fileId));
+      const fileResponse = await altocorto_backend.startPlay(BigInt(videoId));
       if (fileResponse.Ok) {
-        const file = fileResponse.Ok;
+        const video = fileResponse.Ok;
         console.log(file);
-        const chunksQty = Number(file.chunks_qty);
+        const chunksQty = Number(video.chunksQty);
         const promises = [];
 
         for (let i = 0; i < chunksQty; i++) {
           console.log("Descargando chunk Nro ", i);
-          promises.push(altocorto_backend.getChunck(BigInt(fileId), BigInt(i)));
+          promises.push(altocorto_backend.getChunk(BigInt(videoId), BigInt(i)));
         }
 
         const chunkResponses = await Promise.all(promises);

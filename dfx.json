@@ -4,13 +4,13 @@
       "type": "pull",
       "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
     },
-    "backend": {
+    "altocorto_backend": {
       "main": "src/altocorto_backend/main.mo",
       "type": "motoko"
     },
-    "frontend": {
+    "altocorto_frontend": {
       "dependencies": [
-        "backend"
+        "altocorto_backend"
       ],
       "source": [
         "src/altocorto_frontend/dist"

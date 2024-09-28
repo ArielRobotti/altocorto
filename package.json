@@ -14,5 +14,14 @@
   "type": "module",
   "workspaces": [
     "src/altocorto_frontend"
-  ]
+  ],
+  "dependencies": {
+    "@connect2ic/core": "^0.1.1",
+    "@connect2ic/react": "^0.1.0",
+    "@dfinity/agent": "^0.11.3",
+    "@emotion/react": "^11.13.0",
+    "@emotion/styled": "^11.13.0",
+    "@mui/icons-material": "^5.16.6",
+    "@mui/material": "^6.1.1"
+  }
 }
