@@ -70,7 +70,7 @@ actor {
     };
 
     public shared ({ caller }) func uploadRequestNonUserFoTest(fileName : Text, fileSize : Nat): async UploadResponse {
-        let chunkSize = 1_000_000;   // Tamaño en Bytes de los "Chuncks" 1_048_576 //1MB
+        let chunkSize = 1_048_576;   // Tamaño en Bytes de los "Chuncks" 1_048_576 //1MB
         let chunksQty = fileSize / chunkSize + (if (fileSize % chunkSize > 0) {1} else {0});
         let data = Prim.Array_init<Blob>(chunksQty, "");
         let id = tempFileId;
@@ -124,7 +124,7 @@ actor {
                 let data = frezze<Chunk>(video.data);
                 lastVideoId += 1;
                 ignore Map.put<Nat, Video>(videos, nhash, lastVideoId, {video with data});
-                #Ok(fileId)
+                #Ok(lastVideoId)
             }
         };    
     };
@@ -146,6 +146,21 @@ actor {
                 #Ok(video.data[chunkIndex]);
             };
         };
+    };
+
+    public shared ({ caller }) func deleteVideo(id: Nat): async Bool {
+        let video = Map.get<Nat, Video>(videos, nhash, id);
+        switch video {
+            case null {false};
+            case(?video) {
+                if(video.owner == caller) {
+                    Map.delete<Nat, Video>(videos, nhash, id);
+                    true
+                } else {
+                    false
+                }
+            }
+        }
     };
 
 

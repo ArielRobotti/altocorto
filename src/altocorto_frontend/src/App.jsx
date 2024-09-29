@@ -1,4 +1,3 @@
-
 import { altocorto_backend } from 'declarations/altocorto_backend';
 import React, { useState } from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
@@ -12,6 +11,11 @@ import CircularProgress from '@mui/material/CircularProgress';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
 import SearchIcon from '@mui/icons-material/Search';
+import LinearProgress from '@mui/material/LinearProgress';
+import { createClient } from "@connect2ic/core"
+import { InternetIdentity, PlugWallet, NFID } from "@connect2ic/core/providers"
+import { Connect2ICProvider, useConnect } from "@connect2ic/react"
+
 
 const theme = createTheme({
   palette: {
@@ -28,10 +32,40 @@ const theme = createTheme({
   },
 });
 
+// const network =
+//   process.env.DFX_NETWORK ||
+//   (process.env.NODE_ENV === "production" ? "ic" : "local");
+
+// const internetIdentityUrl =
+//   network === "local"
+//     ? "http://localhost:4943/?canisterId=rdmx6-jaaaa-aaaaa-aaadq-cai"
+//     : "https://identity.ic0.app";
+
+// const client = createClient({
+//   canisters: {
+//     altocorto_backend,
+//   },
+//   providers: [
+//     new InternetIdentity({
+//       dev: true,
+//       providerUrl: internetIdentityUrl,
+//     }),
+//     // new PlugWallet(),
+//     new NFID(),
+//   ],
+//   globalProviderConfig: {
+//     dev: true,
+//   },
+// });
+
 function App() {
   const [fileUrl, setFileUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fileName, setFileName] = useState(null);
+  const [videoTitle, setVideoTitle] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
+
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -39,26 +73,33 @@ function App() {
     setError('');
     const file = event.target.elements.file.files[0];
     const fileName = file.name;
-    
     const totalLength = file.size;
     console.log(totalLength);
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+    const timeoutId = setTimeout(() => controller.abort(), 700000);
     try {
       let response = await altocorto_backend.uploadRequestNonUserFoTest(fileName, totalLength);
-      let {tempId, chunksQty, chunkSize } = response.Ok;
+      clearTimeout(timeoutId);
+
+      let { tempId, chunksQty, chunkSize } = response.Ok;
       const promises = [];
 
       for (let i = 0; i < Number(chunksQty); i++) {
         let start = i * Number(chunkSize);
         const chunk = file.slice(start, start + Number(chunkSize));
-        
+
         const arrayBuffer = await chunk.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
-        console.log("Subiendo ", uint8Array.length, " Bytes from Chunck Nro ", i );
-        promises.push(altocorto_backend.addChunk(tempId, uint8Array, i));
+        console.log("Subiendo ", uint8Array.length, " Bytes from Chunck Nro ", i);
+        promises.push(await altocorto_backend.addChunk(tempId, uint8Array, i));
+        setUploadProgress(((i + 1) / Number(chunksQty)) * 100);
       }
-      await Promise.all(promises);
+      // await Promise.all(promises);
       const result = await altocorto_backend.commiUpload(tempId);
-      console.log(result);
+      clearTimeout(timeoutId);
+      alert("Video subido exitosamente. VideoId:  " + result.Ok.toString())
     } catch (err) {
       setError('Error uploading file. Please try again.');
       console.error(err);
@@ -78,17 +119,16 @@ function App() {
       const fileResponse = await altocorto_backend.startPlay(BigInt(videoId));
       if (fileResponse.Ok) {
         const video = fileResponse.Ok;
-        console.log(file);
         const chunksQty = Number(video.chunksQty);
         const promises = [];
 
         for (let i = 0; i < chunksQty; i++) {
           console.log("Descargando chunk Nro ", i);
-          promises.push(altocorto_backend.getChunk(BigInt(videoId), BigInt(i)));
+          promises.push(await altocorto_backend.getChunk(BigInt(videoId), BigInt(i)));
         }
 
-        const chunkResponses = await Promise.all(promises);
-        const chunks = chunkResponses.map(response => response.Ok);
+        // const chunkResponses = await Promise.all(promises);
+        const chunks = promises.map(response => response.Ok);
 
         const arrayBuffers = chunks.map(chunk => chunk.buffer);
         const combinedArrayBuffer = new Uint8Array(arrayBuffers.reduce((acc, buffer) => {
@@ -101,6 +141,7 @@ function App() {
         const blob = new Blob([combinedArrayBuffer], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
         setFileUrl(url);
+        setVideoTitle(video.title);
 
         return () => {
           URL.revokeObjectURL(url);
@@ -119,42 +160,74 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="sm">
+      <Container maxWidth="100%">
         <Box sx={{ mt: 4, mb: 4, textAlign: 'center' }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            File Upload and Download
+          <Typography variant="h5" component="h1" gutterBottom>
+            Alto Corto Plataforma
           </Typography>
-          <form onSubmit={handleSubmit} style={{ marginBottom: '20px' }}>
-            <input type="file" id='file' name='file' placeholder='Select file' required style={{ marginBottom: '20px', display: 'block' }} />
-            <Button type="submit" variant="contained" color="primary" disabled={loading}>
-              Load
+          <p>ICP Hub Argentina Hackathon Septiembre 2024</p>
+
+          {/* Formulario para subir archivos */}
+          <form onSubmit={handleSubmit} style={{ marginBottom: '20px', padding: '10px', width: "100%", maxWidth: "500px", minWidth: "250px" }}>
+            <input
+              type="file"
+              id="file"
+              name="file"
+              placeholder="Select file"
+              required
+              style={{ display: 'none' }}
+              onChange={(e) => setFileName(e.target.files[0]?.name)}
+            />
+            <label htmlFor="file" style={{borderRadius: '30px', width: "100%", maxWidth: "500px", minWidth: "250px" }}>
+              <Button
+                variant="contained"
+                color="primary"
+                component="span"
+                style={{ width: "100%", fontSize: '0.7rem' }}
+              >
+                {fileName || 'Seleccionar archivo'}
+              </Button>
+            </label>
+
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              disabled={loading}
+              style={{ width: "90vw", fontSize: '0.7rem' }}
+            >
+              SUBIR
             </Button>
           </form>
-          <form onSubmit={handleDownload} style={{ marginBottom: '20px' }}>
+          {loading && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px', width: '100%' }}>
+              <LinearProgress variant="determinate" value={uploadProgress} sx={{ width: '80%', marginBottom: '10px' }} />
+              <Typography variant="body2" color="textSecondary">{Math.round(uploadProgress)}%</Typography>
+            </Box>
+          )}
+
+          {/* Formulario para buscar por ID */}
+          <form onSubmit={handleDownload} style={{borderRadius: '30px', width: "100%", maxWidth: "500px", minWidth: "250px" }}>
             <TextField
               name="id"
               variant="outlined"
               fullWidth
               required
               margin="normal"
-              placeholder="Enter File ID"
+              placeholder="Enter Video ID"
               InputProps={{
                 endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
+                  <InputAdornment position="end" >
+                    <IconButton style={{ textAlign: "center"}}
                       aria-label="search"
                       type="submit"
                       edge="end"
                       disabled={loading}
                       sx={{
-                        color: '#aaa', // Color del icono
-                        backgroundColor: 'transparent', // Fondo transparente
-                        '&:hover': {
-                          backgroundColor: 'transparent', // Sin cambio de fondo al pasar el ratón
-                        },
-                        '&:active': {
-                          backgroundColor: 'transparent', // Sin cambio de fondo al hacer clic
-                        },
+                        color: '#aaa',
+                        backgroundColor: 'transparent',
+                        '&:hover': { backgroundColor: 'transparent' },
+                        '&:active': { backgroundColor: 'transparent' },
                       }}
                     >
                       <SearchIcon />
@@ -163,31 +236,37 @@ function App() {
                 ),
                 style: {
                   borderRadius: '30px', // Bordes completamente redondeados
-                  padding: '5px 0px 5px 14px;',
-                  margin: '0px',
+                  // padding: '4px 0px 4px 0px',
+                  padding: "0"
                 },
               }}
               style={{ marginTop: '0px', marginBottom: '0px' }} // Reducir margen vertical
             />
-            {/* <Button type="submit" variant="contained" color="secondary" disabled={loading}>
-              Download
-            </Button> */}
           </form>
+
           {loading && (
             <Box sx={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
               <CircularProgress />
             </Box>
           )}
+
           {error && (
             <Typography variant="body2" color="error" gutterBottom>
               {error}
             </Typography>
           )}
+
           {fileUrl && (
             <>
-              
-              <video controls autoPlay src={fileUrl} style={{ display: 'block', maxWidth: '100%', marginTop: '20px' }} />
-              <Button href={fileUrl} download="downloadedFile" variant="contained" color="primary" style={{ marginTop: '20px' }}>
+            <p>{videoTitle}</p>
+              <video controls autoPlay src={fileUrl} style={{ display: 'block', marginTop: '20px', width: "85%",  }} />
+              <Button
+                href={fileUrl}
+                download="downloadedFile"
+                variant="contained"
+                color="primary"
+                style={{ marginTop: '20px', fontSize: '0.7rem' }} // Ajusta el tamaño de la fuente
+              >
                 Download File
               </Button>
             </>
