@@ -2,6 +2,7 @@ import Map "mo:map/Map";
 import {phash; nhash} "mo:map/Map";
 import Types "types";
 import Prim "mo:⛔";
+import Principal "mo:base/Principal";
 actor {
 
     type User = Types.User;
@@ -14,7 +15,7 @@ actor {
     stable let users = Map.new<Principal, User>();
     stable let videos = Map.new<VideoId, Video>();
     stable var lastVideoId = 0;
-    let tempUploadVideo = Map.new<Nat, TempVideo>();
+    var tempUploadVideo = Map.new<Nat, TempVideo>();
     var tempFileId = 0; 
 
     func isUser(u: Principal): Bool{
@@ -161,6 +162,18 @@ actor {
                 }
             }
         }
+    };
+
+    public shared ({ caller }) func garbageCollector(): async Nat {
+        assert(Principal.isController(caller));
+        var counterBytes = 0;
+        for(temp in Map.vals(tempUploadVideo)){
+            for(b in temp.data.vals()){
+                counterBytes += b.size()
+            }
+        };
+        tempUploadVideo := Map.new<Nat, TempVideo>();
+        counterBytes
     };
 
 
