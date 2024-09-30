@@ -168,11 +168,12 @@ actor {
         assert(Principal.isController(caller));
         var counterBytes = 0;
         for(temp in Map.vals(tempUploadVideo)){
-            for(b in temp.data.vals()){
-                counterBytes += b.size()
+            for(chunk in temp.data.vals()){
+                counterBytes += chunk.size()
             }
         };
         tempUploadVideo := Map.new<Nat, TempVideo>();
+        tempFileId := 0;
         counterBytes
     };
 

@@ -110,6 +110,7 @@ function App() {
 
   async function handleDownload(event) {
     event.preventDefault();
+    setUploadProgress(0);
     setLoading(true);
     setError('');
     const { id } = event.target.elements;
@@ -125,6 +126,7 @@ function App() {
         for (let i = 0; i < chunksQty; i++) {
           console.log("Descargando chunk Nro ", i);
           promises.push(await altocorto_backend.getChunk(BigInt(videoId), BigInt(i)));
+          setUploadProgress(((i + 1) / Number(chunksQty)) * 100);
         }
 
         // const chunkResponses = await Promise.all(promises);
