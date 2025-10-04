@@ -3,7 +3,7 @@ import {phash; nhash} "mo:map/Map";
 import Types "types";
 import Prim "mo:⛔";
 import Principal "mo:base/Principal";
-actor {
+persistent actor {
 
     type User = Types.User;
     type VideoId = Types.VideoId;
@@ -12,9 +12,9 @@ actor {
     type UploadResponse = Types.UploadResponse;
     type Chunk = Types.Chunk;
 
-    stable let users = Map.new<Principal, User>();
-    stable let videos = Map.new<VideoId, Video>();
-    stable var lastVideoId = 0;
+    let users = Map.new<Principal, User>();
+    let videos = Map.new<VideoId, Video>();
+    var lastVideoId = 0;
     var tempUploadVideo = Map.new<Nat, TempVideo>();
     var tempFileId = 0; 
 
