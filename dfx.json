@@ -4,6 +4,10 @@
       "type": "pull",
       "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
     },
+    "ids" : {
+        "type": "pull",
+        "id": "2r3gj-5aaaa-aaaap-qt3pa-cai"
+    },
     "altocorto_backend": {
       "main": "src/altocorto_backend/main.mo",
       "type": "motoko"
